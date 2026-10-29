@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: miam
+  labels:
+    app.kubernetes.io/name: miam
+spec:
+  selector:
+    app.kubernetes.io/name: miam
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

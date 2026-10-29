@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pouet
+  labels:
+    app.kubernetes.io/name: pouet
+spec:
+  selector:
+    app.kubernetes.io/name: pouet
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: miam
+  labels:
+    app.kubernetes.io/name: miam
+spec:
+  rules:
+    - host: miam.demo.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: miam
+                port:
+                  name: http

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>miam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #FFFFFF;
+      --pink: #FF48B0;
+      --blue: #0078BF;
+      --yellow: #FFE800;
+      --ink: #1D1D3B;
+      --font: "Bricolage Grotesque", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font: 400 1.0625rem/1.5 var(--font);
+    }
+    main { max-width: 52rem; margin: 0 auto; padding: clamp(1.5rem, 5vw, 4rem) 1.5rem; }
+    h1 {
+      font: 800 clamp(3rem, 10vw, 6.5rem)/0.92 var(--font);
+      font-variation-settings: "opsz" 96;
+      letter-spacing: -0.035em;
+      margin: 0 0 1.25rem;
+      color: var(--blue);
+      /* Riso misregistration: a pink pass printed slightly off. */
+      text-shadow: 0.06em 0.05em 0 var(--pink);
+    }
+    .lede { margin: 0 0 2.5rem; max-width: 46ch; font-size: 1.2rem; }
+
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+    .dish {
+      position: relative;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 3rem 1fr auto;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      border: 0.15rem solid var(--ink);
+      background: var(--paper);
+      color: var(--ink);
+      font: 600 1.5rem/1 var(--font);
+      text-align: left;
+      cursor: pointer;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .dish .bar {
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: -1;
+      mix-blend-mode: multiply;
+      transition: width 350ms cubic-bezier(.2, .9, .3, 1.2);
+    }
+    li:nth-child(3n + 1) .bar { background: var(--pink); }
+    li:nth-child(3n + 2) .bar { background: var(--yellow); }
+    li:nth-child(3n + 3) .bar { background: var(--blue); opacity: 0.55; }
+    .dish .emoji { font-size: 2rem; }
+    .dish .votes { font-weight: 800; font-size: 1.75rem; font-variant-numeric: tabular-nums; }
+    .dish:hover { box-shadow: 0.3rem 0.3rem 0 var(--ink); }
+    .dish:active { box-shadow: none; transform: translate(0.15rem, 0.15rem); }
+    .dish:focus-visible { outline: 0.2rem solid var(--pink); outline-offset: 0.25rem; }
+    .dish.voted .name::after { content: " +1"; color: var(--pink); font-weight: 800; }
+
+    footer {
+      margin-top: 2.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 2rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    footer p { margin: 0; }
+    .status.down { color: #C4006E; font-weight: 600; }
+    .reset {
+      font: 600 1rem/1 var(--font);
+      padding: 0.7rem 1rem;
+      border: 0.15rem solid var(--ink);
+      background: var(--paper);
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .reset:focus-visible { outline: 0.2rem solid var(--pink); outline-offset: 0.2rem; }
+
+    @media (max-width: 520px) {
+      .dish { grid-template-columns: 2.25rem 1fr auto; font-size: 1.25rem; padding: 0.85rem 1rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .dish .bar { transition: none; }
+      .dish:active { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Ce soir, on mange quoi&nbsp;?</h1>
+    <p class="lede">Clique sur un plat pour voter. Les votes sont rangés dans Redis : tous les pods voient le même tableau, même après un redémarrage.</p>
+
+    <ul id="dishes" aria-live="polite"></ul>
+
+    <footer>
+      <p class="status" id="status">Connexion…</p>
+      <button class="reset" id="reset" type="button">Remettre les votes à zéro</button>
+    </footer>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let lastVoted = null;
+
+    function render({ dishes, total, pod }) {
+      const list = $("dishes");
+      const max = Math.max(1, ...dishes.map((d) => d.votes));
+      if (list.children.length !== dishes.length) {
+        list.replaceChildren(...dishes.map((d) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<button class="dish" type="button">
+            <span class="bar"></span><span class="emoji" aria-hidden="true"></span>
+            <span class="name"></span><span class="votes"></span></button>`;
+          li.querySelector(".emoji").textContent = d.emoji;
+          li.querySelector(".name").textContent = d.name;
+          li.querySelector("button").addEventListener("click", () => vote(d.id));
+          return li;
+        }));
+      }
+      dishes.forEach((d, i) => {
+        const button = list.children[i].querySelector("button");
+        button.classList.toggle("voted", d.id === lastVoted);
+        button.setAttribute("aria-label", `Voter ${d.name}, ${d.votes} vote${d.votes > 1 ? "s" : ""}`);
+        button.querySelector(".votes").textContent = d.votes;
+        button.querySelector(".bar").style.width = `${(d.votes / max) * 100}%`;
+      });
+      const status = $("status");
+      status.classList.remove("down");
+      status.textContent = `${total} vote${total > 1 ? "s" : ""}, servi par ${pod}.`;
+    }
+
+    function showError(message) {
+      const status = $("status");
+      status.classList.add("down");
+      status.textContent = message;
+    }
+
+    async function call(method, path) {
+      try {
+        const res = await fetch(path, { method, cache: "no-store" });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(`${body.error ?? `HTTP ${res.status}`} (pod ${body.pod ?? "?"})`);
+        render(body);
+      } catch (err) {
+        showError(`Votes indisponibles : ${err.message}. Les clics ne sont pas comptés.`);
+      }
+    }
+
+    function vote(id) {
+      lastVoted = id;
+      call("POST", `/api/votes/${id}`);
+      setTimeout(() => { lastVoted = null; }, 1200);
+    }
+
+    $("reset").addEventListener("click", () => call("DELETE", "/api/votes"));
+
+    call("GET", "/api/votes");
+    setInterval(() => call("GET", "/api/votes"), 2000);
+  </script>
+</body>
+</html>

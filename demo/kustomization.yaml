@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - pouet/k8s
+  - kaboom/k8s
+  - miam/k8s
+# Point the images at your registry here (or with `kustomize edit set image`).
+images:
+  - name: tutanka01/pouet
+    newTag: 0.1.0
+  - name: tutanka01/kaboom
+    newTag: 0.1.0
+  - name: tutanka01/miam
+    newTag: 0.1.0

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>kaboom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --concrete: #D9D6CF;
+      --panel: #EFEDE8;
+      --asphalt: #2A2A30;
+      --hazard: #FFC21A;
+      --signal: #E0322D;
+      --steel: #355C7D;
+      --stripes: repeating-linear-gradient(-45deg, var(--hazard) 0 1.1rem, var(--asphalt) 1.1rem 2.2rem);
+      --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+      --body: "Barlow", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--concrete);
+      color: var(--asphalt);
+      font: 400 1rem/1.5 var(--body);
+    }
+    .tape { height: 1.1rem; background: var(--stripes); }
+    header, main { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 2rem;
+      flex-wrap: wrap;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+    h1 {
+      font: 900 clamp(4rem, 12vw, 8rem)/0.8 var(--display);
+      margin: 0;
+      letter-spacing: 0.01em;
+    }
+    header p { margin: 0; max-width: 38ch; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      gap: 2rem;
+      padding-bottom: 3rem;
+    }
+    h2 { font: 700 1.75rem/1 var(--display); margin: 0 0 1rem; }
+
+    .controls { display: grid; gap: 0.75rem; align-content: start; }
+    .control {
+      display: grid;
+      grid-template-columns: 11rem 1fr;
+      gap: 1rem;
+      align-items: center;
+      background: var(--panel);
+      padding: 0.75rem;
+      border-left: 0.4rem solid var(--steel);
+    }
+    .control p { margin: 0; font-size: 0.95rem; }
+    .control button {
+      font: 700 1.3rem/1 var(--display);
+      padding: 0.9rem 0.75rem;
+      border: 0.2rem solid var(--asphalt);
+      background: var(--hazard);
+      color: var(--asphalt);
+      cursor: pointer;
+      box-shadow: 0 0.3rem 0 var(--asphalt);
+    }
+    .control button:active { transform: translateY(0.3rem); box-shadow: none; }
+    .control button:focus-visible { outline: 0.2rem solid var(--steel); outline-offset: 0.25rem; }
+    .control.boom {
+      border-left: 0;
+      padding: 0.6rem;
+      background: var(--stripes);
+    }
+    .control.boom p { background: var(--panel); padding: 0.6rem 0.75rem; align-self: stretch; display: flex; align-items: center; }
+    .control.boom button {
+      background: var(--signal);
+      color: #FFF;
+      font-size: 1.6rem;
+      min-height: 4.5rem;
+    }
+
+    .pods { display: grid; gap: 0.75rem; align-content: start; }
+    .pod {
+      background: var(--panel);
+      padding: 1rem 1.25rem;
+      border-top: 0.4rem solid var(--steel);
+    }
+    .pod.pale { border-top-color: var(--hazard); }
+    .pod.gone { opacity: 0.45; border-top-color: var(--signal); }
+    .pod h3 { font: 700 1.6rem/1.1 var(--display); margin: 0; overflow-wrap: anywhere; }
+    .pod .where { margin: 0.1rem 0 0.75rem; color: #5B5B63; font-size: 0.9rem; }
+    .pod dl { display: grid; grid-template-columns: repeat(4, auto); gap: 0.25rem 1.25rem; margin: 0; justify-content: start; }
+    .pod dt { font-size: 0.85rem; color: #5B5B63; }
+    .pod dd { margin: 0; font: 700 1.5rem/1 var(--display); grid-row: 2; }
+    .pod .status { margin: 0.75rem 0 0; font-weight: 600; }
+    .empty { background: var(--panel); padding: 1rem 1.25rem; margin: 0; }
+
+    .log { grid-column: 1 / -1; }
+    .log ol { list-style: none; margin: 0; padding: 0; max-height: 14rem; overflow: auto; background: var(--asphalt); color: var(--concrete); }
+    .log li { padding: 0.35rem 1rem; border-bottom: 1px solid #3D3D45; }
+    .log li time { color: var(--hazard); margin-right: 0.75rem; }
+    .log li.bad { color: #FF9B97; }
+
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; }
+      .control { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .control button:active { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="tape" aria-hidden="true"></div>
+  <header>
+    <h1>kaboom</h1>
+    <p>Chaque bouton passe par le Service : c'est le pod qui répond qui encaisse. À droite, chaque pod qui a répondu au moins une fois.</p>
+  </header>
+
+  <main>
+    <section class="controls" aria-labelledby="controls-title">
+      <h2 id="controls-title">Démolition</h2>
+      <div class="control">
+        <button type="button" data-action="burn">Chauffer le CPU</button>
+        <p>Occupe un cœur à 100 % pendant 30 s. Appuie plusieurs fois pour réveiller le HPA.</p>
+      </div>
+      <div class="control">
+        <button type="button" data-action="eat">Gaver de RAM</button>
+        <p>Avale 64 Mo de plus. La limite est à 256 Mo : au 4e appui, OOMKilled.</p>
+      </div>
+      <div class="control">
+        <button type="button" data-action="free">Rendre la RAM</button>
+        <p>Libère tout ce que le pod a avalé.</p>
+      </div>
+      <div class="control">
+        <button type="button" data-action="pale">Porter pâle</button>
+        <p>/readyz répond 503 pendant 30 s. Le pod sort des endpoints du Service, sans redémarrer.</p>
+      </div>
+      <div class="control boom">
+        <button type="button" data-action="explode">Tout faire péter</button>
+        <p>Le process quitte avec le code 1. Kubelet le relance et le compteur de restarts grimpe.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="pods-title">
+      <h2 id="pods-title">Pods au rapport</h2>
+      <div class="pods" id="pods" aria-live="polite">
+        <p class="empty">En attente d'un premier pod…</p>
+      </div>
+    </section>
+
+    <section class="log" aria-labelledby="log-title">
+      <h2 id="log-title">Journal de chantier</h2>
+      <ol id="log"></ol>
+    </section>
+  </main>
+
+  <script>
+    const STALE_MS = 5000;
+    const seen = new Map(); // pod -> { state, at }
+    const $ = (id) => document.getElementById(id);
+
+    function log(message, bad = false) {
+      const li = document.createElement("li");
+      if (bad) li.className = "bad";
+      const time = document.createElement("time");
+      time.textContent = new Date().toLocaleTimeString("fr-FR");
+      li.append(time, message);
+      $("log").prepend(li);
+    }
+
+    function duration(s) {
+      if (s < 60) return `${s} s`;
+      if (s < 3600) return `${Math.floor(s / 60)} min`;
+      return `${Math.floor(s / 3600)} h`;
+    }
+
+    function render() {
+      const pods = $("pods");
+      if (seen.size === 0) return;
+      pods.replaceChildren();
+      const now = Date.now();
+      for (const [name, { state: s, at }] of [...seen].sort(([a], [b]) => a.localeCompare(b))) {
+        const silent = now - at;
+        const card = document.createElement("article");
+        card.className = "pod" + (silent > STALE_MS ? " gone" : s.ready ? "" : " pale");
+        card.innerHTML = `
+          <h3></h3>
+          <p class="where"></p>
+          <dl>
+            <dt>Uptime</dt><dd>${duration(s.uptimeSeconds)}</dd>
+            <dt>Cœurs en feu</dt><dd>${s.burners}</dd>
+            <dt>RAM avalée</dt><dd>${s.hogMiB} Mo</dd>
+            <dt>Version</dt><dd></dd>
+          </dl>
+          <p class="status"></p>`;
+        card.querySelector("h3").textContent = name;
+        card.querySelector(".where").textContent = `namespace ${s.namespace}, nœud ${s.node}`;
+        card.querySelector("dd:last-of-type").textContent = s.version;
+        card.querySelector(".status").textContent = silent > STALE_MS
+          ? `Silence radio depuis ${Math.round(silent / 1000)} s.`
+          : s.ready ? "Prêt, reçoit du trafic." : "Porté pâle, hors du Service.";
+        pods.append(card);
+      }
+    }
+
+    async function poll() {
+      try {
+        const res = await fetch("/api/state", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const s = await res.json();
+        if (!seen.has(s.pod)) log(`${s.pod} se présente au rapport.`);
+        seen.set(s.pod, { state: s, at: Date.now() });
+      } catch {
+        // The pod list going grey is feedback enough.
+      }
+      render();
+    }
+
+    document.querySelectorAll("[data-action]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        try {
+          const res = await fetch(`/api/${button.dataset.action}`, { method: "POST" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const { pod, message } = await res.json();
+          log(`${pod} ${message}.`);
+        } catch (err) {
+          log(`Aucun pod n'a répondu (${err.message}). Il est peut-être en train de redémarrer.`, true);
+        }
+        poll();
+      });
+    });
+
+    poll();
+    setInterval(poll, 1000);
+  </script>
+</body>
+</html>

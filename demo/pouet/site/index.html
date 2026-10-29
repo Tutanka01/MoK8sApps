@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pouet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --banana: #FFD23F;
+      --ink: #2B1A3F;
+      --horn: #F0354B;
+      --horn-dark: #A81630;
+      --mint: #19C2A0;
+      --white: #FFFFFF;
+      --display: "Bagel Fat One", "Arial Rounded MT Bold", system-ui, sans-serif;
+      --body: "Rubik", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--banana);
+      color: var(--ink);
+      font: 400 1.0625rem/1.5 var(--body);
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 3rem;
+      padding: clamp(1.5rem, 4vw, 4rem);
+      align-items: center;
+    }
+    h1 {
+      font: 400 clamp(5rem, 16vw, 12rem)/0.85 var(--display);
+      margin: 0 0 2rem;
+      letter-spacing: -0.02em;
+      transform: rotate(-4deg);
+      transform-origin: left bottom;
+    }
+    .stage { display: flex; flex-direction: column; align-items: flex-start; }
+    .horn {
+      width: clamp(12rem, 28vw, 18rem);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 0.5rem solid var(--ink);
+      background: radial-gradient(circle at 35% 30%, #FF7A8A 0 12%, var(--horn) 13% 100%);
+      box-shadow: 0 0.9rem 0 var(--horn-dark), 0 0.9rem 0 0.5rem var(--ink);
+      color: var(--white);
+      font: 400 clamp(2rem, 5vw, 3rem)/1 var(--display);
+      cursor: pointer;
+      transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+    }
+    .horn:active, .horn.squash {
+      transform: translateY(0.7rem) scaleY(0.88);
+      box-shadow: 0 0.2rem 0 var(--horn-dark), 0 0.2rem 0 0.5rem var(--ink);
+    }
+    .horn:focus-visible, button:focus-visible {
+      outline: 0.25rem dashed var(--ink);
+      outline-offset: 0.6rem;
+    }
+    .hint { margin: 2.5rem 0 1rem; max-width: 32ch; font-weight: 500; }
+    .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .small {
+      font: 700 1rem/1 var(--body);
+      padding: 0.75rem 1.1rem;
+      border-radius: 999px;
+      border: 0.2rem solid var(--ink);
+      background: var(--white);
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .small[aria-pressed="true"] { background: var(--ink); color: var(--banana); }
+
+    .board {
+      background: var(--white);
+      border: 0.3rem solid var(--ink);
+      border-radius: 1.5rem;
+      padding: 1.75rem;
+      box-shadow: 0.6rem 0.6rem 0 var(--ink);
+    }
+    .board h2 { font: 400 2rem/1.1 var(--display); margin: 0 0 0.25rem; }
+    .board > p { margin: 0 0 1.5rem; }
+    ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; }
+    li { display: grid; grid-template-columns: 1fr auto; gap: 0.3rem 1rem; align-items: baseline; }
+    li .name { font-weight: 700; overflow-wrap: anywhere; }
+    li .count { font: 400 1.5rem/1 var(--display); }
+    li .bar { grid-column: 1 / -1; height: 0.9rem; border-radius: 999px; background: #F3EEDC; overflow: hidden; }
+    li .fill { height: 100%; border-radius: 999px; transition: width 200ms ease-out; }
+    li.latest .name::after { content: " ← à l'instant"; font-weight: 400; color: var(--horn-dark); }
+    .empty { color: #6B5A7E; }
+    .last { margin-top: 1.5rem; font-size: 0.95rem; color: #6B5A7E; min-height: 1.5em; }
+    .error { color: var(--horn-dark); font-weight: 700; }
+
+    @media (max-width: 760px) {
+      body { grid-template-columns: 1fr; }
+      .stage { align-items: center; text-align: center; }
+      h1 { transform: rotate(-4deg); transform-origin: center; }
+      .actions { justify-content: center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .horn, li .fill { transition: none; }
+      .horn:active, .horn.squash { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <h1>pouet</h1>
+    <button class="horn" id="horn" type="button">Pouet !</button>
+    <p class="hint">Chaque pouet envoie une requête. Un des pods répond, et on note lequel.</p>
+    <div class="actions">
+      <button class="small" id="burst" type="button">Rafale de 20</button>
+      <button class="small" id="mute" type="button" aria-pressed="false">Couper le son</button>
+      <button class="small" id="reset" type="button">Remettre à zéro</button>
+    </div>
+  </main>
+
+  <section class="board" aria-live="polite">
+    <h2>Qui a répondu</h2>
+    <p id="summary">Personne pour l'instant. Appuie sur le klaxon.</p>
+    <ol id="pods"></ol>
+    <p class="last" id="last"></p>
+  </section>
+
+  <script>
+    const counts = new Map();
+    let total = 0;
+    let latestPod = null;
+    let muted = false;
+    let audio = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function podColor(name) {
+      let h = 0;
+      for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+      return `hsl(${h % 360} 70% 45%)`;
+    }
+
+    function honkSound() {
+      if (muted) return;
+      audio ??= new AudioContext();
+      const t = audio.currentTime;
+      const gain = audio.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      gain.connect(audio.destination);
+      for (const f of [370, 466]) {
+        const osc = audio.createOscillator();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(f, t);
+        osc.frequency.exponentialRampToValueAtTime(f * 0.8, t + 0.3);
+        osc.connect(gain);
+        osc.start(t);
+        osc.stop(t + 0.36);
+      }
+    }
+
+    function render() {
+      const list = $("pods");
+      list.replaceChildren();
+      const max = Math.max(1, ...counts.values());
+      for (const [pod, n] of [...counts].sort(([a], [b]) => a.localeCompare(b))) {
+        const li = document.createElement("li");
+        if (pod === latestPod) li.className = "latest";
+        li.innerHTML = `<span class="name"></span><span class="count">${n}</span>
+          <span class="bar"><span class="fill"></span></span>`;
+        li.querySelector(".name").textContent = pod;
+        const fill = li.querySelector(".fill");
+        fill.style.width = `${(n / max) * 100}%`;
+        fill.style.background = podColor(pod);
+        list.append(li);
+      }
+      $("summary").textContent = total === 0
+        ? "Personne pour l'instant. Appuie sur le klaxon."
+        : `${total} pouet${total > 1 ? "s" : ""}, ${counts.size} pod${counts.size > 1 ? "s" : ""} différent${counts.size > 1 ? "s" : ""}.`;
+    }
+
+    async function pouet() {
+      const started = performance.now();
+      try {
+        const res = await fetch("/whoami", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { pod } = await res.json();
+        const ms = Math.round(performance.now() - started);
+        counts.set(pod, (counts.get(pod) ?? 0) + 1);
+        total++;
+        latestPod = pod;
+        $("last").textContent = `Dernier pouet : ${pod}, en ${ms} ms.`;
+        render();
+      } catch (err) {
+        $("last").innerHTML = `<span class="error"></span>`;
+        $("last").firstChild.textContent = `Aucun pod n'a répondu (${err.message}). Vérifie le Service et les endpoints.`;
+      }
+    }
+
+    function squash() {
+      const horn = $("horn");
+      horn.classList.add("squash");
+      setTimeout(() => horn.classList.remove("squash"), 90);
+    }
+
+    $("horn").addEventListener("click", () => { honkSound(); pouet(); });
+
+    $("burst").addEventListener("click", async () => {
+      for (let i = 0; i < 20; i++) {
+        squash();
+        if (i % 4 === 0) honkSound();
+        await pouet();
+      }
+    });
+
+    $("mute").addEventListener("click", (e) => {
+      muted = !muted;
+      e.currentTarget.setAttribute("aria-pressed", String(muted));
+      e.currentTarget.textContent = muted ? "Remettre le son" : "Couper le son";
+    });
+
+    $("reset").addEventListener("click", () => {
+      counts.clear();
+      total = 0;
+      latestPod = null;
+      $("last").textContent = "";
+      render();
+    });
+  </script>
+</body>
+</html>
