@@ -19,7 +19,5 @@ spec:
       - name: demo-mano
         image: nginx
         ports: 
-          - port: 80
-            targetPort: 80
-            containerPort: 80
+          - containerPort: 80
         type: LoadBalancer
