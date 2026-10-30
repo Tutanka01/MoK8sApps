@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-mano
+  labels:
+    app: demo-mano
+
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: demo-mano
+  template:
+    metadata:
+      labels:
+        app: demo-mano
+    spec:
+      containers:
+      - name: demo-mano
+        image: nginx
+        ports: 
+          - port: 80
+            targetPort: 80
+        type: LoadBalancer
